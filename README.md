@@ -157,9 +157,93 @@ We can now access our application
 ![image](https://github.com/user-attachments/assets/176d04e4-30e5-46a4-bdb8-1eaa8cb86217)
 
 
-## This successfully completes our CI/CD Devops pipeline
+### This successfully completes our CI/CD Devops pipeline
+
+## GitOps
+
+GitOps enables development and operations teams to use Git—an open source version control and distributed code management system—for declarative configuration driving application delivery and cluster management.
+
+Git tracks all of the changes to the application and environment configuration via commits and pull requests which triggers a synchronize event. A GitOps workflow enables teams to manage software deployment and infrastructure provisioning in an automated and reliable manner.
+
+Technically, GitOps requires a Git repository, an environment supporting declarative configuration (like Kubernetes), and a GitOps agent that synchronizes between the Git repository, which is the source of truth, and the current state of the cluster.
+
+### ArgoCD for Gitops
+
+Argo CD automates the process of detecting changes to resources and reapplying the desired state when drift detection is enabled. Argo CD works with Argo Rollouts, a progressive delivery tool that can handle blue/green and canary deployments out of the box, and Argo Workflows, a workflow engine that orchestrates parallel jobs in Kubernetes.
+
+We will now implement GitOps pipeline with Github, AWS Code pipeline and Code Build, Argo CD. Below is the architecture diagram to implement Gitops
 
 ![image](https://github.com/user-attachments/assets/08c6170f-a03f-4729-9635-5714257d1849)
+
+
+
+CI part of CI/CD will remain same in Gitops as Traditional Devops. The difference comes in CD part where instead of Codebuild pushing the manifest file in EKS cluster, ArgoCD pulls the latest changes from github repo and deploys on the EKS cluster.
+
+## Installation of ArgoCD on EKS Cluster
+
+Lets create EKS Cluster as shown below :
+
+<img width="323" alt="Screenshot 2025-03-24 at 3 38 56 PM" src="https://github.com/user-attachments/assets/fb5ebc28-4484-4291-ab9e-8beb3a7fada0" />
+
+
+Lets install ArgoCD on the EKS Cluster as shown below . We will follow official argoCd installation instructions as shown in the link https://argo-cd.readthedocs.io/en/stable/getting_started/
+
+<img width="1091" alt="Screenshot 2025-03-24 at 3 38 47 PM" src="https://github.com/user-attachments/assets/3d54c68c-1b9d-4ee8-8e10-36cff12db684" />
+
+Once, ArgoCD is installed , We need to setup ArgoCD CLI as per instructions in the above link and generate password :
+
+Once password is generated, we can login into the argoCD
+
+<img width="1692" alt="Screenshot 2025-03-24 at 3 31 59 PM" src="https://github.com/user-attachments/assets/17ad27d2-7a03-49b7-b77d-6b4d389c4a1c" />
+
+
+## Lets now look at the steps needed in AWS Code pipeline and AWS Code build
+
+As discussed, most of the steps would remain same as Devops. In Code pipeline, we need to create webhook triggers as shown in the below screenshot :
+
+<img width="762" alt="Screenshot 2025-03-29 at 5 23 33 PM" src="https://github.com/user-attachments/assets/6fdca2b6-c07f-42ce-9dad-39d5bbfde037" />
+
+This shows that dont start the pipeline for the below conditions. We need to enable this filter so that it should not go into infinite loop.
+Any commits in manifest yaml file should not trigger the pipeline as this file will be committed during the build process.
+
+## Review builspec-gitops.yaml
+
+<img width="1376" alt="Screenshot 2025-03-29 at 5 25 58 PM" src="https://github.com/user-attachments/assets/b35a0176-ea50-450b-a04a-9dc3b79014c6" />
+
+As discussed, most of it is same as Traditional Devops buildspec.yml file. However, in this we are not pushing the updated manifest file and not using kubectl to deploy on EKS cluster.
+Instead, we are commiting the updated file and pushing it to github.
+
+### Setup ArgoCD.
+
+Once all this setup is completed, we can login into ArgoCd and create an application.
+
+![image](https://github.com/user-attachments/assets/9e785713-fe03-49bf-9173-647a685e6219)
+
+We can enter the name of the application. This can be any name and we can also use the name defined in manifest file.
+
+Source should be our github repo url. Branch can be master or main depending on where our codebase is present.
+
+path should be the path where manifest file is present. if it is root path, we can enter as ./
+
+Cluster name should be default cluster url and namespace is default.
+
+Once all these values are added, we can click create. This should start deploying our application on EKS cluster as shown below :
+
+<img width="1589" alt="Screenshot 2025-03-24 at 3 37 43 PM" src="https://github.com/user-attachments/assets/ec4453d3-5f0a-41d2-8a52-432e811c701c" />
+
+
+<img width="1515" alt="Screenshot 2025-03-24 at 3 37 36 PM" src="https://github.com/user-attachments/assets/e0a497c8-f4cd-4968-ba86-11ac76638096" />
+
+We can now test our application and also can change some file on github and can see if it relects on the page.
+
+<img width="1519" alt="Screenshot 2025-03-24 at 3 37 29 PM" src="https://github.com/user-attachments/assets/bf921349-c768-4835-9a7f-3a4c5583214a" />
+
+### Congratulations, We have now completed gitops pipeline for our EKS Cluster.
+
+So, We see that Gitops is not to replace Devops but it makes Devops better by  enhancing it by incorporating Git throughout the software delivery process, making it easier to orchestrate projects and keep them in sync. The end goal is to achieve smoother, faster, and more reliable software development and delivery.
+
+
+
 
 
 
